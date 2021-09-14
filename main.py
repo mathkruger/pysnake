@@ -1,4 +1,4 @@
-import pygame, sys, random
+import pygame, sys, random, json
 from pygame.math import Vector2
 
 class FRUIT:
@@ -108,17 +108,28 @@ class MAIN:
     def __init__(self):
         self.fruit = FRUIT()
         self.snake = SNAKE()
+        self.highscore = {
+            'score': 0
+        }
+
+        try:
+            with open('highscore.txt') as highscore_file:
+                self.highscore = json.load(highscore_file)
+        except:
+            pass
     
     def update(self):
         self.snake.move_snake()
         self.check_collision()
         self.check_fail()
+        self.check_highscore()
     
     def draw_elements(self):
         self.draw_grass()
         self.fruit.draw_fruit()
         self.snake.draw_snake()
         self.draw_score()
+        self.draw_highscore()
     
     def input(self, key):
         if key == pygame.K_UP:
@@ -154,7 +165,13 @@ class MAIN:
         for block in self.snake.body[1:]:
             if block == self.snake.body[0]:
                 self.game_over()
-    
+
+    def check_highscore(self):
+        score = len(self.snake.body) - 3
+
+        if score > self.highscore['score']:
+            self.highscore['score'] = score
+
     def game_over(self):
         self.snake.reset()
     
@@ -186,6 +203,20 @@ class MAIN:
         screen.blit(score_surface,score_rect)
         screen.blit(apple,apple_rect)
         pygame.draw.rect(screen,(56,74,12),bg_rect,2)
+    
+    def draw_highscore(self):
+        high_text = str(self.highscore["score"])
+        high_surface = game_font.render(high_text,True,(56,74,12))
+        high_x = cell_size * 2 + 10
+        high_y = int(cell_size * cell_number - 40)
+        high_rect = high_surface.get_rect(center = (high_x,high_y))
+        star_rect = apple.get_rect(midright = (high_rect.left,high_rect.centery))
+        bg_rect = pygame.Rect(star_rect.left,star_rect.top,star_rect.width + high_rect.width + 6,star_rect.height)
+        
+        pygame.draw.rect(screen,(167,209,61),bg_rect)
+        screen.blit(high_surface,high_rect)
+        screen.blit(star,star_rect)
+        pygame.draw.rect(screen,(56,74,12),bg_rect,2)
 
 
 pygame.mixer.pre_init(44100,-16,512)
@@ -195,6 +226,7 @@ cell_number = 20
 screen = pygame.display.set_mode((cell_number * cell_size, cell_number * cell_size))
 clock = pygame.time.Clock()
 apple = pygame.image.load('Graphics/apple.png').convert_alpha()
+star = pygame.image.load('Graphics/star.png').convert_alpha()
 game_font = pygame.font.Font('Font/PoetsenOne-Regular.ttf', 25)
 
 SCREEN_UPDATE = pygame.USEREVENT
@@ -205,6 +237,9 @@ main_game = MAIN()
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            with open('highscore.txt','w') as highscore_file:
+                json.dump(main_game.highscore,highscore_file)
+
             pygame.quit()
             sys.exit()
 
